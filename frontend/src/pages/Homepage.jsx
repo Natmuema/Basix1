@@ -1,18 +1,37 @@
 import React, { useState, useEffect } from 'react';
-import {cards, featuredAssets} from '../constants';
-import { ArrowRight, Play, Sparkles } from 'lucide-react';
+import { ArrowRight, Play, Sparkles, Loader } from 'lucide-react';
 import AssetCard from '../components/AssetCard';
 import { Link } from 'react-router-dom';
+import { useMarketplace } from '../context/MarketplaceContext';
 
 const Homepage = () => {
-      const [displayedText, setDisplayedText] = useState('');
+  const [displayedText, setDisplayedText] = useState('');
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isTypingComplete, setIsTypingComplete] = useState(false);
+  
+  // Get data from MarketplaceContext
+  const { 
+    creators, 
+    nfts, 
+    marketStats, 
+    loading, 
+    error, 
+    fetchCreators, 
+    fetchNFTs, 
+    fetchMarketStats 
+  } = useMarketplace();
   
   const fullText = "Empowering local creators with AI + blockchain";
   const typingSpeed = 80; // milliseconds per character
   
-   useEffect(() => {
+  // Fetch data on component mount
+  useEffect(() => {
+    fetchCreators(1);
+    fetchNFTs({ page_size: 6 }); // Get 6 featured NFTs
+    fetchMarketStats();
+  }, []);
+
+  useEffect(() => {
     if (currentIndex < fullText.length) {
       const timer = setTimeout(() => {
         setDisplayedText(fullText.slice(0, currentIndex + 1));
@@ -114,22 +133,48 @@ const Homepage = () => {
         </div>
 
         <div className="grid md:grid-cols-3 gap-8">
-          {cards.map((feature, index) => (
-            <div 
-              key={index} 
-              className="group p-8 bg-white/70 backdrop-blur-sm border border-white/50 rounded-2xl shadow-lg hover:shadow-xl hover:bg-white/80 transition-all duration-300 hover:scale-[1.02] hover:-translate-y-1"
-            >
-              <div className="p-3 bg-gradient-to-br from-cyan-500/10 to-blue-500/10 rounded-xl w-fit mb-6 group-hover:scale-110 group-hover:bg-gradient-to-br group-hover:from-cyan-500/20 group-hover:to-blue-500/20 transition-all duration-300">
-                <feature.icon className="w-6 h-6 text-cyan-600 group-hover:text-cyan-700" />
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-4 group-hover:text-cyan-700 transition-colors">
-                {feature.title}
-              </h3>
-              <p className="text-gray-600 leading-relaxed group-hover:text-gray-700 transition-colors">
-                {feature.description}
-              </p>
+          {/* AI-Powered Creativity Card */}
+          <div className="group p-8 bg-white/70 backdrop-blur-sm border border-white/50 rounded-2xl shadow-lg hover:shadow-xl hover:bg-white/80 transition-all duration-300 hover:scale-[1.02] hover:-translate-y-1">
+            <div className="p-3 bg-gradient-to-br from-cyan-500/10 to-blue-500/10 rounded-xl w-fit mb-6 group-hover:scale-110 group-hover:bg-gradient-to-br group-hover:from-cyan-500/20 group-hover:to-blue-500/20 transition-all duration-300">
+              <Sparkles className="w-6 h-6 text-cyan-600 group-hover:text-cyan-700" />
             </div>
-          ))}
+            <h3 className="text-xl font-semibold text-gray-900 mb-4 group-hover:text-cyan-700 transition-colors">
+              AI-Powered Creativity
+            </h3>
+            <p className="text-gray-600 leading-relaxed group-hover:text-gray-700 transition-colors">
+              {marketStats ? `${marketStats.total_creators || 0} creators` : 'Loading...'} using MeTTa AI to enhance their digital assets
+            </p>
+          </div>
+
+          {/* Blockchain Security Card */}
+          <div className="group p-8 bg-white/70 backdrop-blur-sm border border-white/50 rounded-2xl shadow-lg hover:shadow-xl hover:bg-white/80 transition-all duration-300 hover:scale-[1.02] hover:-translate-y-1">
+            <div className="p-3 bg-gradient-to-br from-cyan-500/10 to-blue-500/10 rounded-xl w-fit mb-6 group-hover:scale-110 group-hover:bg-gradient-to-br group-hover:from-cyan-500/20 group-hover:to-blue-500/20 transition-all duration-300">
+              <svg className="w-6 h-6 text-cyan-600 group-hover:text-cyan-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+              </svg>
+            </div>
+            <h3 className="text-xl font-semibold text-gray-900 mb-4 group-hover:text-cyan-700 transition-colors">
+              Blockchain Security
+            </h3>
+            <p className="text-gray-600 leading-relaxed group-hover:text-gray-700 transition-colors">
+              {marketStats ? `${marketStats.total_nfts || 0} NFTs` : 'Loading...'} secured on immutable blockchain
+            </p>
+          </div>
+
+          {/* Community Impact Card */}
+          <div className="group p-8 bg-white/70 backdrop-blur-sm border border-white/50 rounded-2xl shadow-lg hover:shadow-xl hover:bg-white/80 transition-all duration-300 hover:scale-[1.02] hover:-translate-y-1">
+            <div className="p-3 bg-gradient-to-br from-cyan-500/10 to-blue-500/10 rounded-xl w-fit mb-6 group-hover:scale-110 group-hover:bg-gradient-to-br group-hover:from-cyan-500/20 group-hover:to-blue-500/20 transition-all duration-300">
+              <svg className="w-6 h-6 text-cyan-600 group-hover:text-cyan-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+              </svg>
+            </div>
+            <h3 className="text-xl font-semibold text-gray-900 mb-4 group-hover:text-cyan-700 transition-colors">
+              Community Impact
+            </h3>
+            <p className="text-gray-600 leading-relaxed group-hover:text-gray-700 transition-colors">
+              ${marketStats ? (marketStats.total_transaction_volume / 1000).toFixed(1) + 'k' : '0'} in community funding raised
+            </p>
+          </div>
         </div>
       </div>
     </section>
@@ -156,11 +201,29 @@ const Homepage = () => {
         </div>
 
         {/* Assets Grid */}
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {featuredAssets.map((asset) => (
-            <AssetCard key={asset.id} asset={asset} />
-          ))}
-        </div>
+        {loading ? (
+          <div className="flex justify-center items-center min-h-[400px]">
+            <Loader className="w-8 h-8 animate-spin text-cyan-400" />
+          </div>
+        ) : error ? (
+          <div className="text-center text-red-400 min-h-[400px] flex items-center justify-center">
+            <p>Error loading assets: {error}</p>
+          </div>
+        ) : (
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {nfts.slice(0, 6).map((nft) => (
+              <AssetCard key={nft.id} asset={{
+                id: nft.id,
+                title: nft.name,
+                creator: nft.creator_name || 'Unknown Creator',
+                funded: `${nft.funding_percentage || 0}%`,
+                image: nft.image_url || '/api/placeholder/400/300',
+                category: nft.product_category || 'Digital Art',
+                impact: nft.impact_score || 0
+              }} />
+            ))}
+          </div>
+        )}
 
         {/* Optional: Show more assets hint */}
         <div className="text-center mt-12">

@@ -1,13 +1,42 @@
-import React, {useState} from 'react';
-import { Plus, TrendingUp, DollarSign, Package, Eye, Users, BarChart3, Handshake, FileText } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Plus, TrendingUp, DollarSign, Package, Eye, Users, BarChart3, Handshake, FileText, Loader } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import AssetUploadForm from './AssetUploadForm';
+import { useMarketplace } from '../context/MarketplaceContext';
+import { useAuth } from '../context/Authcontext';
 
 const CreatorDashboard = () => {
   const [selectedAssetTab, setSelectedAssetTab] = useState('overview');
-   const [isAssetFormOpen, setIsAssetFormOpen] = useState(false);
+  const [isAssetFormOpen, setIsAssetFormOpen] = useState(false);
+  const [creatorAssets, setCreatorAssets] = useState([]);
+  const [stats, setStats] = useState(null);
+  
+  const { user } = useAuth();
+  const { nfts, loading, error, fetchNFTs, marketStats } = useMarketplace();
+  
+  useEffect(() => {
+    // Fetch creator's assets
+    if (user?.id) {
+      fetchNFTs({ creator: user.id });
+    }
+  }, [user]);
+  
+  useEffect(() => {
+    // Filter NFTs for current creator
+    const myAssets = nfts.filter(nft => nft.creator === user?.id || nft.creator_email === user?.email);
+    setCreatorAssets(myAssets.map(nft => ({
+      id: nft.id,
+      title: nft.name,
+      type: nft.product_type || 'Digital Asset',
+      status: nft.is_active ? 'Active' : 'Inactive',
+      funded: nft.funding_percentage || 0,
+      revenue: `$${nft.current_price || 0}`,
+      image: nft.image_url || 'https://images.pexels.com/photos/894695/pexels-photo-894695.jpeg?auto=compress&cs=tinysrgb&w=300'
+    })));
+  }, [nfts, user]);
 
-  const assets = [
+  // Mock assets for demo - will be replaced by API data
+  const mockAssets = [
     {
       id: 1,
       title: "Kenyan Coffee Collection NFT",
@@ -36,6 +65,9 @@ const CreatorDashboard = () => {
       image: "https://images.pexels.com/photos/1536619/pexels-photo-1536619.jpeg?auto=compress&cs=tinysrgb&w=300"
     }
   ];
+  
+  // Use creator's assets if available, otherwise use mock data
+  const assets = creatorAssets.length > 0 ? creatorAssets : mockAssets;
 
   const collaborations = [
     {
@@ -100,22 +132,29 @@ const CreatorDashboard = () => {
       </div>
 
       {/* Quick Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Total Assets</p>
-              <p className="text-2xl font-bold text-navy-900">12</p>
-            </div>
-            <Package className="h-8 w-8 text-blue-600" />
-          </div>
+      {loading ? (
+        <div className="flex justify-center items-center h-32">
+          <Loader className="w-8 h-8 animate-spin text-cyan-600" />
         </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Total Assets</p>
+                <p className="text-2xl font-bold text-navy-900">{assets.length}</p>
+              </div>
+              <Package className="h-8 w-8 text-blue-600" />
+            </div>
+          </div>
 
         <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-600">Revenue</p>
-              <p className="text-2xl font-bold text-green-600">$16,170</p>
+              <p className="text-2xl font-bold text-green-600">
+                ${assets.reduce((sum, asset) => sum + parseFloat(asset.revenue.replace('$', '') || 0), 0).toFixed(0)}
+              </p>
             </div>
             <DollarSign className="h-8 w-8 text-green-600" />
           </div>
@@ -125,7 +164,9 @@ const CreatorDashboard = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-600">Avg. Funding</p>
-              <p className="text-2xl font-bold text-blue-600">47%</p>
+              <p className="text-2xl font-bold text-blue-600">
+                {assets.length > 0 ? Math.round(assets.reduce((sum, asset) => sum + asset.funded, 0) / assets.length) : 0}%
+              </p>
             </div>
             <TrendingUp className="h-8 w-8 text-blue-600" />
           </div>
@@ -135,7 +176,9 @@ const CreatorDashboard = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-600">Investors</p>
-              <p className="text-2xl font-bold text-purple-600">147</p>
+              <p className="text-2xl font-bold text-purple-600">
+                {marketStats?.total_investors || 0}
+              </p>
             </div>
             <Users className="h-8 w-8 text-purple-600" />
           </div>

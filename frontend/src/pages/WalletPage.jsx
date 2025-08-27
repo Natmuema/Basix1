@@ -1,10 +1,78 @@
-import React, { useState } from 'react';
-import { Wallet, Send, ArrowDownLeft, ArrowUpRight, Shield, Copy, ExternalLink, CreditCard, TrendingUp, Eye, EyeOff} from 'lucide-react';
-import {walletData} from '../constants';
+import React, { useState, useEffect } from 'react';
+import { Wallet, Send, ArrowDownLeft, ArrowUpRight, Shield, Copy, ExternalLink, CreditCard, TrendingUp, Eye, EyeOff, Loader } from 'lucide-react';
+import { utilitiesService } from '../services';
+import { useAuth } from '../context/Authcontext';
 
 const WalletPage = () => {
   const [selectedTab, setSelectedTab] = useState('overview');
   const [showBalance, setShowBalance] = useState(true);
+  const [transactions, setTransactions] = useState([]);
+  const [walletBalance, setWalletBalance] = useState({ ada: 0, usd: 0 });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  
+  const { user } = useAuth();
+  
+  // Mock wallet data - replace with actual blockchain integration
+  const walletData = {
+    address: user?.walletAddress || 'addr1qxxx...xxxx',
+    balance: walletBalance,
+    tokens: []
+  };
+  
+  useEffect(() => {
+    fetchTransactions();
+    fetchWalletBalance();
+  }, [user]);
+  
+  const fetchTransactions = async () => {
+    try {
+      setLoading(true);
+      const data = await utilitiesService.getTransactions({ 
+        user: user?.id,
+        page_size: 10 
+      });
+      
+      // Transform API data to match component structure
+      const transformedTransactions = (data.results || []).map(tx => ({
+        id: tx.id,
+        type: tx.transaction_type === 'sale' ? 'receive' : 'send',
+        from: tx.from_user || 'Unknown',
+        to: tx.to_user || 'Unknown',
+        amount: tx.amount,
+        asset: 'ADA',
+        timestamp: new Date(tx.created_at).toLocaleString(),
+        status: tx.status || 'completed',
+        hash: tx.transaction_hash || 'pending'
+      }));
+      
+      setTransactions(transformedTransactions);
+    } catch (err) {
+      setError(err.message);
+      console.error('Error fetching transactions:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  const fetchWalletBalance = async () => {
+    try {
+      // Calculate balance from transactions
+      const data = await utilitiesService.getTransactions({ 
+        user: user?.id 
+      });
+      const totalValue = data.results?.reduce((sum, tx) => {
+        return sum + (tx.transaction_type === 'purchase' ? -tx.amount : tx.amount);
+      }, 0) || 0;
+      
+      setWalletBalance({
+        ada: totalValue,
+        usd: totalValue * 0.35 // Mock ADA to USD conversion
+      });
+    } catch (err) {
+      console.error('Error calculating balance:', err);
+    }
+  };
 
   const copyToClipboard = (text) => {
     navigator.clipboard.writeText(text);
@@ -26,6 +94,11 @@ const WalletPage = () => {
           {/* Main Content */}
           <div className="lg:col-span-2 space-y-8">
             {/* Balance Card - Same as Main Wallet */}
+            {loading ? (
+              <div className="bg-gradient-to-br from-slate-800 via-blue-800 to-slate-900 p-6 rounded-2xl shadow-xl text-white border border-cyan-400/20 flex items-center justify-center h-64">
+                <Loader className="w-8 h-8 animate-spin text-cyan-400" />
+              </div>
+            ) : (
             <div className="bg-gradient-to-br from-slate-800 via-blue-800 to-slate-900 p-6 rounded-2xl shadow-xl text-white border border-cyan-400/20">
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center space-x-3">
@@ -79,6 +152,7 @@ const WalletPage = () => {
                 </div>
               </div>
             </div>
+            )}
 
             {/* Action Buttons */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -161,7 +235,7 @@ const WalletPage = () => {
                     <div>
                       <h3 className="font-bold text-white mb-6 text-lg">Recent Activity</h3>
                       <div className="space-y-4">
-                        {walletData.transactions.slice(0, 3).map((tx) => (
+                        {transactions.slice(0, 3).map((tx) => (
                           <div key={tx.id} className="flex items-center justify-between p-4 bg-white/10 rounded-xl hover:bg-white/20 transition-colors border border-white/20">
                             <div className="flex items-center space-x-4">
                               <div className={`p-2 rounded-lg ${
@@ -196,7 +270,7 @@ const WalletPage = () => {
                         View All
                       </button>
                     </div>
-                    {walletData.transactions.map((tx) => (
+                    {transactions.map((tx) => (
                       <div key={tx.id} className="bg-white/10 border border-white/20 rounded-xl p-5 hover:bg-white/20 transition-all duration-200">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center space-x-4">
@@ -233,7 +307,7 @@ const WalletPage = () => {
                 {selectedTab === 'tokens' && (
                   <div className="space-y-6">
                     <h3 className="font-bold text-white text-lg">Your Assets & Tokens</h3>
-                    {walletData.tokens.map((token, index) => (
+                    {(walletData.tokens || []).map((token, index) => (
                       <div key={index} className="bg-white/10 border border-white/20 rounded-xl p-5 hover:bg-white/20 transition-all duration-200">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center space-x-4">
