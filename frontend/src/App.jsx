@@ -13,6 +13,7 @@ import PortfolioPage from './pages/PortfolioPage'
 import InvestmentAlertsModal from './components/InvestmentAlertsModal'
 import CreatorDashboard from './components/CreatorDashboard'
 import Footer from './components/Footer'
+import AuthTest from './components/AuthTest'
 import { AuthProvider } from './context/Authcontext'    
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 
@@ -25,19 +26,54 @@ const App = () => {
           
           <Routes>
             <Route path="/" element={<Homepage />} />
-             <Route path="/login" element={<Login />} />
+            <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
-            <Route path="/funding" element={<FundingPage />} />
-            <Route path="/portfolio" element={<PortfolioPage />} />
-            <Route path="/investment-alerts" element={<InvestmentAlertsModal />} />
-            <Route path="/wallet" element={<WalletPage />} />
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/assets" element={<Assets />} />
-            <Route path="/creator-dashboard" element={<CreatorDashboard />} />
-            <Route path="/open-asset-upload-form" element={<AssetUploadForm />} />
-        </Routes>
-        <Footer />
-      </Router>
+            <Route path="/auth-test" element={<AuthTest />} />
+            
+            {/* Protected Routes */}
+            <Route path="/funding" element={
+              <ProtectedRoute>
+                <FundingPage />
+              </ProtectedRoute>
+            } />
+            <Route path="/portfolio" element={
+              <ProtectedRoute>
+                <PortfolioPage />
+              </ProtectedRoute>
+            } />
+            <Route path="/investment-alerts" element={
+              <ProtectedRoute>
+                <InvestmentAlertsModal />
+              </ProtectedRoute>
+            } />
+            <Route path="/wallet" element={
+              <ProtectedRoute>
+                <WalletPage />
+              </ProtectedRoute>
+            } />
+            <Route path="/dashboard" element={
+              <ProtectedRoute>
+                <Dashboard />
+              </ProtectedRoute>
+            } />
+            <Route path="/assets" element={
+              <ProtectedRoute>
+                <Assets />
+              </ProtectedRoute>
+            } />
+            <Route path="/creator-dashboard" element={
+              <ProtectedRoute>
+                <CreatorDashboard />
+              </ProtectedRoute>
+            } />
+            <Route path="/open-asset-upload-form" element={
+              <ProtectedRoute>
+                <AssetUploadForm />
+              </ProtectedRoute>
+            } />
+          </Routes>
+          <Footer />
+        </Router>
       </AuthProvider>
     </div>
   )

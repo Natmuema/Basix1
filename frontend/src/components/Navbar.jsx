@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, NavLink } from 'react-router-dom';
-import { User, Wallet, Menu, X,Bell } from 'lucide-react';
+import { User, Wallet, Menu, X, Bell } from 'lucide-react';
 import { useAuth } from '../context/Authcontext';
 
 const Navbar = () => {
@@ -11,10 +11,9 @@ const Navbar = () => {
     setIsMobileMenuOpen(!isMobileMenuOpen);
   };
 
-    const handleLogout = () => {
+  const handleLogout = () => {
     logout();
   };
-
 
   return (
     <nav className="sticky top-0 z-50 bg-transparent">
@@ -39,58 +38,71 @@ const Navbar = () => {
               >
                 Home
               </NavLink>
-              <NavLink
-                to="/dashboard"
-                className="px-4 py-3 text-lg font-bold text-white hover:text-cyan-400 hover:bg-blue-500/10 rounded-lg transition-colors"
-              >
-                Dashboard
-              </NavLink>
-              <NavLink
-                to="/assets"
-                className="px-4 py-3 text-lg font-bold text-white hover:text-cyan-400 hover:bg-blue-500/10 rounded-lg transition-colors"
-              >
-                Assets
-              </NavLink>
-              <NavLink
-                to="/funding"
-                className="px-4 py-3 text-lg font-bold text-white hover:text-cyan-400 hover:bg-blue-500/10 rounded-lg transition-colors"
-              >
-                Funding
-              </NavLink>
+              {isAuthenticated && (
+                <>
+                  <NavLink
+                    to="/dashboard"
+                    className="px-4 py-3 text-lg font-bold text-white hover:text-cyan-400 hover:bg-blue-500/10 rounded-lg transition-colors"
+                  >
+                    Dashboard
+                  </NavLink>
+                  <NavLink
+                    to="/assets"
+                    className="px-4 py-3 text-lg font-bold text-white hover:text-cyan-400 hover:bg-blue-500/10 rounded-lg transition-colors"
+                  >
+                    Assets
+                  </NavLink>
+                  <NavLink
+                    to="/funding"
+                    className="px-4 py-3 text-lg font-bold text-white hover:text-cyan-400 hover:bg-blue-500/10 rounded-lg transition-colors"
+                  >
+                    Funding
+                  </NavLink>
+                </>
+              )}
             </div>
           </div>
 
           {/* Desktop Action Buttons */}
-           <div className="hidden md:flex items-center space-x-4">
-            <button className="p-2 text-cyan-400 hover:text-gray-600 transition-colors">
-              <Bell className="h-5 w-5" />
-            </button>
+          <div className="hidden md:flex items-center space-x-4">
+            {isAuthenticated && (
+              <button className="p-2 text-cyan-400 hover:text-white transition-colors">
+                <Bell className="h-5 w-5" />
+              </button>
+            )}
             {isAuthenticated ? (
               <div className="flex items-center space-x-4">
                 <div className="flex items-center space-x-2">
-                  <div className="w-8 h-8 bg-cyan-700 rounded-full flex items-center justify-center">
+                  <div className="w-8 h-8 bg-cyan-600 rounded-full flex items-center justify-center">
                     <span className="text-white text-sm font-semibold">
-                      {user?.full_name?.charAt(0) || user?.username?.charAt(0) || 'U'}
+                      {user?.name?.charAt(0) || user?.email?.charAt(0) || 'U'}
                     </span>
                   </div>
-                  <span className="text-gray-700 font-medium">
-                    {user?.full_name || user?.username}
+                  <span className="text-white font-medium">
+                    {user?.name || user?.email}
                   </span>
                 </div>
                 <button 
                   onClick={handleLogout}
-                  className="flex items-center space-x-2 bg-gradient-to-r from-cyan-400 to-blue-400 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition-colors"
+                  className="flex items-center space-x-2 bg-gradient-to-r from-red-500 to-red-600 text-white px-4 py-2 rounded-lg hover:from-red-600 hover:to-red-700 transition-colors"
                 >
                   <span>Logout</span>
                 </button>
               </div>
             ) : (
-              <NavLink to="/wallet">
-                <button className="flex items-center space-x-2 bg-gradient-to-r from-cyan-400 to-blue-400 text-white px-4 py-2 rounded-lg hover:bg-cyan-400 transition-colors">
-                  <User className="h-4 w-4" />
-                  <span>Connect Wallet</span>
-                </button>
-              </NavLink>
+              <div className="flex items-center space-x-4">
+                <Link to="/login">
+                  <button className="flex items-center space-x-2 bg-gradient-to-r from-cyan-400 to-blue-400 text-white px-4 py-2 rounded-lg hover:from-cyan-500 hover:to-blue-500 transition-colors">
+                    <User className="h-4 w-4" />
+                    <span>Login</span>
+                  </button>
+                </Link>
+                <Link to="/register">
+                  <button className="flex items-center space-x-2 bg-gradient-to-r from-green-500 to-green-600 text-white px-4 py-2 rounded-lg hover:from-green-600 hover:to-green-700 transition-colors">
+                    <span>Register</span>
+                  </button>
+                </Link>
+              </div>
             )}
           </div>
 
@@ -117,41 +129,62 @@ const Navbar = () => {
             >
               Home
             </NavLink>
-            <NavLink
-              to="/dashboard"
-              className="block px-4 py-3 font-bold text-white hover:text-cyan-400 hover:bg-blue-500/10 rounded-lg transition-colors"
-              onClick={() => setIsMobileMenuOpen(false)}
-            >
-              Dashboard
-            </NavLink>
-            <NavLink
-              to="/assets"
-              className="block px-4 py-3 font-bold text-white hover:text-cyan-400 hover:bg-blue-500/10 rounded-lg transition-colors"
-              onClick={() => setIsMobileMenuOpen(false)}
-            >
-              Assets
-            </NavLink>
-            <NavLink
-              to="/funding"
-              className="block px-4 py-3 font-bold text-white hover:text-cyan-400 hover:bg-blue-500/10 rounded-lg transition-colors"
-              onClick={() => setIsMobileMenuOpen(false)}
-            >
-              Funding
-            </NavLink>
+            {isAuthenticated && (
+              <>
+                <NavLink
+                  to="/dashboard"
+                  className="block px-4 py-3 font-bold text-white hover:text-cyan-400 hover:bg-blue-500/10 rounded-lg transition-colors"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  Dashboard
+                </NavLink>
+                <NavLink
+                  to="/assets"
+                  className="block px-4 py-3 font-bold text-white hover:text-cyan-400 hover:bg-blue-500/10 rounded-lg transition-colors"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  Assets
+                </NavLink>
+                <NavLink
+                  to="/funding"
+                  className="block px-4 py-3 font-bold text-white hover:text-cyan-400 hover:bg-blue-500/10 rounded-lg transition-colors"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  Funding
+                </NavLink>
+              </>
+            )}
             
             <div className="pt-4 space-y-2">
-              <Link
-                to="/login"
-                className="flex items-center justify-center space-x-2 w-full px-4 py-3 border border-blue-400/20 hover:bg-blue-500/10 text-white rounded-lg transition-colors font-medium"
-                onClick={() => setIsMobileMenuOpen(false)}
-              >
-                <User size={16} />
-                <span>Login</span>
-              </Link>
-              <button className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white px-4 py-3 rounded-lg flex items-center justify-center space-x-2 font-medium transition-all">
-                <Wallet size={16} />
-                <span>Connect Wallet</span>
-              </button>
+              {isAuthenticated ? (
+                <button
+                  onClick={() => {
+                    handleLogout();
+                    setIsMobileMenuOpen(false);
+                  }}
+                  className="w-full bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white px-4 py-3 rounded-lg flex items-center justify-center space-x-2 font-medium transition-all"
+                >
+                  <span>Logout</span>
+                </button>
+              ) : (
+                <>
+                  <Link
+                    to="/login"
+                    className="flex items-center justify-center space-x-2 w-full px-4 py-3 border border-blue-400/20 hover:bg-blue-500/10 text-white rounded-lg transition-colors font-medium"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    <User size={16} />
+                    <span>Login</span>
+                  </Link>
+                  <Link
+                    to="/register"
+                    className="w-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white px-4 py-3 rounded-lg flex items-center justify-center space-x-2 font-medium transition-all"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    <span>Register</span>
+                  </Link>
+                </>
+              )}
             </div>
           </div>
         </div>
