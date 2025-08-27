@@ -68,54 +68,38 @@ export const AuthProvider = ({ children }) => {
   const login = async (email, password, userType) => {
     setIsLoading(true);
     try {
-      const response = await api.post('/token/', {
+      // Use the custom login endpoint
+      const response = await api.post('/auth/login/', {
         username: email, // Django expects username field
         password: password,
       });
 
-      const { access, refresh } = response.data;
+      const { user: userData, creator, tokens } = response.data;
       
-      // Get user details
-      const userResponse = await api.get('/creators/', {
-        headers: {
-          Authorization: `Bearer ${access}`,
-        },
-      });
-
-      // Find the user by email
-      const userData = userResponse.data.results?.find(
-        creator => creator.user.email === email
-      ) || {
-        id: Math.random().toString(36).substr(2, 9),
-        user: { email, username: email },
-        wallet_address: 'temp_wallet',
-        skills: [],
-        reputation_score: 0,
-      };
-
       const userInfo = {
         id: userData.id,
-        email: userData.user.email,
-        name: userData.user.username,
+        email: userData.email,
+        name: userData.username,
         userType: userType,
-        wallet_address: userData.wallet_address,
-        skills: userData.skills,
-        reputation_score: userData.reputation_score,
+        wallet_address: creator.wallet_address,
+        skills: creator.skills,
+        reputation_score: creator.reputation_score,
+        creator_id: creator.id,
       };
       
       setUser(userInfo);
       setIsAuthenticated(true);
       localStorage.setItem('basix_user', JSON.stringify(userInfo));
-      localStorage.setItem('basix_token', access);
-      localStorage.setItem('basix_refresh_token', refresh);
+      localStorage.setItem('basix_token', tokens.access);
+      localStorage.setItem('basix_refresh_token', tokens.refresh);
       
       return userInfo;
     } catch (error) {
       console.error("Login error:", error);
-      if (error.response?.data?.detail) {
+      if (error.response?.data?.error) {
+        throw new Error(error.response.data.error);
+      } else if (error.response?.data?.detail) {
         throw new Error(error.response.data.detail);
-      } else if (error.response?.data?.non_field_errors) {
-        throw new Error(error.response.data.non_field_errors[0]);
       } else {
         throw new Error("Login failed. Please check your credentials.");
       }
@@ -127,8 +111,8 @@ export const AuthProvider = ({ children }) => {
   const register = async (userData) => {
     setIsLoading(true);
     try {
-      // First, create a Django user
-      const userResponse = await api.post('/creators/', {
+      // Use the custom register endpoint
+      const response = await api.post('/auth/register/', {
         user: {
           username: userData.name,
           email: userData.email,
@@ -136,17 +120,36 @@ export const AuthProvider = ({ children }) => {
           first_name: userData.name.split(' ')[0] || userData.name,
           last_name: userData.name.split(' ').slice(1).join(' ') || '',
         },
-        wallet_address: `wallet_${Date.now()}`, // Generate a temporary wallet address
+        wallet_address: `wallet_${Date.now()}`,
         skills: userData.userType === 'creator' ? ['general'] : [],
         reputation_score: 0,
       });
 
-      // After successful registration, log the user in
-      await login(userData.email, userData.password, userData.userType);
-      return userResponse.data;
+      const { user: userInfo, creator, tokens } = response.data;
+      
+      const userProfile = {
+        id: userInfo.id,
+        email: userInfo.email,
+        name: userInfo.username,
+        userType: userData.userType,
+        wallet_address: creator.wallet_address,
+        skills: creator.skills,
+        reputation_score: creator.reputation_score,
+        creator_id: creator.id,
+      };
+      
+      setUser(userProfile);
+      setIsAuthenticated(true);
+      localStorage.setItem('basix_user', JSON.stringify(userProfile));
+      localStorage.setItem('basix_token', tokens.access);
+      localStorage.setItem('basix_refresh_token', tokens.refresh);
+      
+      return response.data;
     } catch (error) {
       console.error("Registration error:", error);
-      if (error.response?.data?.user?.username) {
+      if (error.response?.data?.error) {
+        throw new Error(error.response.data.error);
+      } else if (error.response?.data?.user?.username) {
         throw new Error(`Username: ${error.response.data.user.username[0]}`);
       } else if (error.response?.data?.user?.email) {
         throw new Error(`Email: ${error.response.data.user.email[0]}`);

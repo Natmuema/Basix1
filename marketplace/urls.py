@@ -4,6 +4,7 @@ from . import views
 
 # Create a router and register our viewsets with it
 router = DefaultRouter()
+router.register(r'auth', views.AuthViewSet, basename='auth')
 router.register(r'creators', views.CreatorViewSet)
 router.register(r'products', views.ProductViewSet)
 router.register(r'nfts', views.NFTViewSet)

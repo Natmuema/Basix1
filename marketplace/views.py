@@ -1,10 +1,15 @@
 from rest_framework import viewsets, status, permissions
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from rest_framework.views import APIView
+from rest_framework_simplejwt.views import TokenObtainPairView
 from django.db import transaction
 from django.utils import timezone
 from django.shortcuts import get_object_or_404
 from django.db.models import Q, Sum, Count, Avg
+from django.contrib.auth.models import User
+from django.contrib.auth import authenticate
+from rest_framework_simplejwt.tokens import RefreshToken
 
 from .models import (
     Creator, Product, NFT, Utility, Ownership, DynamicOwnership,
@@ -19,6 +24,133 @@ from .serializers import (
     NFTHistorySerializer, SmartFunctionSerializer, MarketplaceConfigSerializer,
     NFTCreationSerializer, OwnershipTransferSerializer, ImpactScoreCalculationSerializer
 )
+
+
+class AuthViewSet(viewsets.ViewSet):
+    """Authentication endpoints for user registration and login"""
+    
+    @action(detail=False, methods=['post'], permission_classes=[permissions.AllowAny])
+    def register(self, request):
+        """Register a new user and creator"""
+        try:
+            with transaction.atomic():
+                # Extract user data
+                user_data = request.data.get('user', {})
+                creator_data = {
+                    'wallet_address': request.data.get('wallet_address', f"wallet_{timezone.now().timestamp()}"),
+                    'skills': request.data.get('skills', []),
+                    'reputation_score': request.data.get('reputation_score', 0),
+                    'bio': request.data.get('bio', ''),
+                    'profile_image': request.data.get('profile_image', ''),
+                }
+                
+                # Create Django user
+                user = User.objects.create_user(
+                    username=user_data.get('username'),
+                    email=user_data.get('email'),
+                    password=user_data.get('password'),
+                    first_name=user_data.get('first_name', ''),
+                    last_name=user_data.get('last_name', '')
+                )
+                
+                # Create creator profile
+                creator = Creator.objects.create(
+                    user=user,
+                    **creator_data
+                )
+                
+                # Generate tokens
+                refresh = RefreshToken.for_user(user)
+                
+                return Response({
+                    'message': 'User registered successfully',
+                    'user': {
+                        'id': user.id,
+                        'username': user.username,
+                        'email': user.email,
+                        'first_name': user.first_name,
+                        'last_name': user.last_name,
+                    },
+                    'creator': CreatorSerializer(creator).data,
+                    'tokens': {
+                        'access': str(refresh.access_token),
+                        'refresh': str(refresh),
+                    }
+                }, status=status.HTTP_201_CREATED)
+                
+        except Exception as e:
+            return Response({
+                'error': str(e)
+            }, status=status.HTTP_400_BAD_REQUEST)
+    
+    @action(detail=False, methods=['post'], permission_classes=[permissions.AllowAny])
+    def login(self, request):
+        """Custom login endpoint"""
+        username = request.data.get('username')
+        password = request.data.get('password')
+        
+        if not username or not password:
+            return Response({
+                'error': 'Username and password are required'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Authenticate user
+        user = authenticate(username=username, password=password)
+        
+        if not user:
+            return Response({
+                'error': 'Invalid credentials'
+            }, status=status.HTTP_401_UNAUTHORIZED)
+        
+        # Get or create creator profile
+        creator, created = Creator.objects.get_or_create(
+            user=user,
+            defaults={
+                'wallet_address': f"wallet_{timezone.now().timestamp()}",
+                'skills': [],
+                'reputation_score': 0,
+            }
+        )
+        
+        # Generate tokens
+        refresh = RefreshToken.for_user(user)
+        
+        return Response({
+            'message': 'Login successful',
+            'user': {
+                'id': user.id,
+                'username': user.username,
+                'email': user.email,
+                'first_name': user.first_name,
+                'last_name': user.last_name,
+            },
+            'creator': CreatorSerializer(creator).data,
+            'tokens': {
+                'access': str(refresh.access_token),
+                'refresh': str(refresh),
+            }
+        })
+    
+    @action(detail=False, methods=['get'], permission_classes=[permissions.IsAuthenticated])
+    def me(self, request):
+        """Get current user information"""
+        user = request.user
+        try:
+            creator = Creator.objects.get(user=user)
+            return Response({
+                'user': {
+                    'id': user.id,
+                    'username': user.username,
+                    'email': user.email,
+                    'first_name': user.first_name,
+                    'last_name': user.last_name,
+                },
+                'creator': CreatorSerializer(creator).data,
+            })
+        except Creator.DoesNotExist:
+            return Response({
+                'error': 'Creator profile not found'
+            }, status=status.HTTP_404_NOT_FOUND)
 
 
 class CreatorViewSet(viewsets.ModelViewSet):
