@@ -68,23 +68,26 @@ export const AuthProvider = ({ children }) => {
   const login = async (email, password, userType) => {
     setIsLoading(true);
     try {
-      // Use the custom login endpoint
+      // Use the users app login endpoint
       const response = await api.post('/auth/login/', {
         username: email, // Django expects username field
         password: password,
       });
 
-      const { user: userData, creator, tokens } = response.data;
+      const { user: userData, tokens } = response.data;
       
       const userInfo = {
         id: userData.id,
         email: userData.email,
         name: userData.username,
-        userType: userType,
-        wallet_address: creator.wallet_address,
-        skills: creator.skills,
-        reputation_score: creator.reputation_score,
-        creator_id: creator.id,
+        userType: userData.user_type,
+        wallet_address: userData.wallet_address,
+        is_verified: userData.is_verified,
+        profile_image: userData.profile_image,
+        bio: userData.bio,
+        phone_number: userData.phone_number,
+        first_name: userData.first_name,
+        last_name: userData.last_name,
       };
       
       setUser(userInfo);
@@ -111,31 +114,43 @@ export const AuthProvider = ({ children }) => {
   const register = async (userData) => {
     setIsLoading(true);
     try {
-      // Use the custom register endpoint
+      // Use the users app register endpoint
       const response = await api.post('/auth/register/', {
-        user: {
-          username: userData.name,
-          email: userData.email,
-          password: userData.password,
-          first_name: userData.name.split(' ')[0] || userData.name,
-          last_name: userData.name.split(' ').slice(1).join(' ') || '',
-        },
-        wallet_address: `wallet_${Date.now()}`,
-        skills: userData.userType === 'creator' ? ['general'] : [],
-        reputation_score: 0,
+        username: userData.name,
+        email: userData.email,
+        password: userData.password,
+        password_confirm: userData.password,
+        first_name: userData.name.split(' ')[0] || userData.name,
+        last_name: userData.name.split(' ').slice(1).join(' ') || '',
+        user_type: userData.userType,
+        phone_number: userData.phone_number || '',
+        creator_profile: userData.userType === 'creator' ? {
+          skills: ['general'],
+          reputation_score: 0,
+          experience_years: 0,
+        } : undefined,
+        investor_profile: userData.userType === 'investor' ? {
+          investment_preferences: [],
+          risk_tolerance: 'medium',
+          investment_budget: 0,
+          preferred_categories: [],
+        } : undefined,
       });
 
-      const { user: userInfo, creator, tokens } = response.data;
+      const { user: userInfo, tokens } = response.data;
       
       const userProfile = {
         id: userInfo.id,
         email: userInfo.email,
         name: userInfo.username,
-        userType: userData.userType,
-        wallet_address: creator.wallet_address,
-        skills: creator.skills,
-        reputation_score: creator.reputation_score,
-        creator_id: creator.id,
+        userType: userInfo.user_type,
+        wallet_address: userInfo.wallet_address,
+        is_verified: userInfo.is_verified,
+        profile_image: userInfo.profile_image,
+        bio: userInfo.bio,
+        phone_number: userInfo.phone_number,
+        first_name: userInfo.first_name,
+        last_name: userInfo.last_name,
       };
       
       setUser(userProfile);
@@ -149,12 +164,12 @@ export const AuthProvider = ({ children }) => {
       console.error("Registration error:", error);
       if (error.response?.data?.error) {
         throw new Error(error.response.data.error);
-      } else if (error.response?.data?.user?.username) {
-        throw new Error(`Username: ${error.response.data.user.username[0]}`);
-      } else if (error.response?.data?.user?.email) {
-        throw new Error(`Email: ${error.response.data.user.email[0]}`);
-      } else if (error.response?.data?.user?.password) {
-        throw new Error(`Password: ${error.response.data.user.password[0]}`);
+      } else if (error.response?.data?.username) {
+        throw new Error(`Username: ${error.response.data.username[0]}`);
+      } else if (error.response?.data?.email) {
+        throw new Error(`Email: ${error.response.data.email[0]}`);
+      } else if (error.response?.data?.password) {
+        throw new Error(`Password: ${error.response.data.password[0]}`);
       } else {
         throw new Error("Registration failed. Please try again.");
       }
@@ -165,10 +180,10 @@ export const AuthProvider = ({ children }) => {
 
   const logout = async () => {
     try {
-      // Call backend logout endpoint if available
+      // Call backend logout endpoint
       const token = localStorage.getItem('basix_token');
       if (token) {
-        await api.post('/token/blacklist/', {
+        await api.post('/auth/logout/', {
           refresh: localStorage.getItem('basix_refresh_token'),
         });
       }
@@ -210,6 +225,33 @@ export const AuthProvider = ({ children }) => {
     localStorage.setItem('basix_user', JSON.stringify(userData));
   };
 
+  const getCurrentUser = async () => {
+    try {
+      const response = await api.get('/auth/me/');
+      const userData = response.data;
+      
+      const userInfo = {
+        id: userData.id,
+        email: userData.email,
+        name: userData.username,
+        userType: userData.user_type,
+        wallet_address: userData.wallet_address,
+        is_verified: userData.is_verified,
+        profile_image: userData.profile_image,
+        bio: userData.bio,
+        phone_number: userData.phone_number,
+        first_name: userData.first_name,
+        last_name: userData.last_name,
+      };
+      
+      updateUser(userInfo);
+      return userInfo;
+    } catch (error) {
+      console.error("Get current user error:", error);
+      throw error;
+    }
+  };
+
   return (
     <AuthContext.Provider value={{ 
       user, 
@@ -220,6 +262,7 @@ export const AuthProvider = ({ children }) => {
       isAuthenticated,
       updateUser,
       refreshToken,
+      getCurrentUser,
       api // Export the configured axios instance
     }}>
       {children}
